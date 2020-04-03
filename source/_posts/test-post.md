@@ -6,5 +6,6 @@ tags: test dog
 
 # Test
 
-![image-20200403221911391](./test-post/image-20200403221911391.png)
+{% image-20200403221911391.png This is an example image %}
+
 
