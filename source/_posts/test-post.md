@@ -6,6 +6,9 @@ tags: test dog
 
 # Test
 
-{% image-20200403221911391.png This is an example image %}
+![image-20200404114752433](test-post/image-20200404114752433.png)
 
+323423423
+
+> (≧∇≦)/
 
