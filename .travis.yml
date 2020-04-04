@@ -11,7 +11,7 @@ before_install:
 
 install:
   - npm install hexo-cli -g
-  - npm install hexo-assrt-image --save
+  - npm install hexo-asset-image --save
   - npm install
 
 script:
