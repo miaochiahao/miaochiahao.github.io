@@ -12,6 +12,7 @@ before_install:
 install:
   - npm install hexo-cli -g
   - npm install https://github.com/CodeFalling/hexo-asset-image -—save
+  - npm install hexo-generator-feed
   - npm install
 
 script:
