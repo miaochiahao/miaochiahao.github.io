@@ -156,7 +156,7 @@ Custom exception class used to navigate to the 'main' menu.
 
 一上来定义了几个类用于异常处理，其实这个是在菜单跳转中使用的。真正重要的是之后定义的几个大的类，MainMenu, SubMenu, AgentsMenu, AgentMenu, PowerShellAgentMenu, PythonAgentMenu, ListenersMenu, ListenerMenu, ModuleMenu, StagerMenu，下面一个一个讲
 
-MainMenu是最核心的控制部分，程序启动后会首先进入主菜单。Empire菜单的控制逻辑其实不全是自己写的，而是继承了cmd模块中的Cmd类，这个类的详情可以看这里https://wiki.python.org/moin/CmdModule，简要来说的话就是提供了写命令行应用的一些很方便的特性，比如能够自定义命令和语法、整体读取命令和返回结果的循环、TAB键的语法补全，我们在MainMenu类中看到形如do_xxx的语法均为定义指令，help_xxx的语法均为定义帮助命令，complete_xxx的语法均为处理TAB补全相关
+MainMenu是最核心的控制部分，程序启动后会首先进入主菜单。Empire菜单的控制逻辑其实不全是自己写的，而是继承了cmd模块中的Cmd类，这个类的详情可以看[这里](https://wiki.python.org/moin/CmdModule)，简要来说的话就是提供了写命令行应用的一些很方便的特性，比如能够自定义命令和语法、整体读取命令和返回结果的循环、TAB键的语法补全，我们在MainMenu类中看到形如do_xxx的语法均为定义指令，help_xxx的语法均为定义帮助命令，complete_xxx的语法均为处理TAB补全相关
 
 在写远控框架的时候另一个比较重要的问题是，当我们发送的命令得到Client回复时，Server如何获知这个消息。Empire在这个问题上给出的答案是使用dispatcher模块。这个模块是生产者-消费者模式的一种实现，详情可以见[http://pydispatcher.sourceforge.net](http://pydispatcher.sourceforge.net/) 
 
