@@ -36,6 +36,8 @@ JNDI的作用就是让上方的调用者只需要调用JNDI API，而不需要�
 
 之前已经测试过使用Reference时会造成Client命令执行，这次只调试下使用Remote Object会发生什么
 
+Reference是JNDI对RMI的扩展，因此这里的Client是调用了JNDI的接口
+
 RMI-Client测试代码：
 
 ```java
