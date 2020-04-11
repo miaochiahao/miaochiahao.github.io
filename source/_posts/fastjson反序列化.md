@@ -565,7 +565,13 @@ RMI禁用了远程加载类后，新的POC模式出现了，使用RMI+本地加�
 
 当服务端使用了高版本的JDK（9u191以上版本），默认状态下不能在远程加载恶意的Factory，但如果在本地有能够利用的Factory就依然可以走`getObjectInstance()`的分支实现命令执行
 
-一个满足条件并且被广泛使用的类是`org.apache.naming.factory.BeanFactory`，在Tomcat的依赖包中
+一个满足条件并且被广泛使用的类是`org.apache.naming.factory.BeanFactory`，在Tomcat的依赖包中。
+
+实际的利用过程是，首先恶意的RMI-Server需要绑定一个ResourceRef来封装工厂类，当客户端lookup操作获取到对象后，会先判断是否是Reference类型
+
+![image-20200410220355915](fastjson反序列化/image-20200410220355915.png)
+
+如果是Reference会使用getObjectFactoryFromReference方法获取工厂类，然后调用factory.getObjectInstance方法进行实例化。这里获取到的工厂类就是BeanFactory
 
 
 
@@ -579,6 +585,22 @@ RMI禁用了远程加载类后，新的POC模式出现了，使用RMI+本地加�
 ```
 
 利用`com.sun.org.apache.xalan.internal.xsltc.trax.TemplateImpl`类实现的命令执行
+
+## fastjson 1.2.25修复
+
+https://github.com/alibaba/fastjson/compare/1.2.24...1.2.25
+
+![image-20200410234925624](fastjson反序列化/image-20200410234925624.png)
+
+## fastjson 1.2.42修复
+
+https://github.com/alibaba/fastjson/compare/1.2.25...1.2.42
+
+![image-20200411001638162](fastjson反序列化/image-20200411001638162.png)
+
+![image-20200411002000317](fastjson反序列化/image-20200411002000317.png)
+
+![image-20200411005234842](fastjson反序列化/image-20200411005234842.png)
 
 ## Reference
 
