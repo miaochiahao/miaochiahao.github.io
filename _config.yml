@@ -110,7 +110,3 @@ feed:
     content_limit:
     content_limit_delim: ' '
 
-# DISQUS comments
-disqus_enabled: true
-disqus_shortname: chiahao-1
-
