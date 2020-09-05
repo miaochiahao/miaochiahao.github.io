@@ -54,7 +54,7 @@ qemu-system-arm -kernel ~/qemu_vms/qemu-rpi-kernel/kernel-qemu-4.4.34-jessie -cp
 
 读这一章节的时候一个困惑的点是CARRY标识位
 
-![Screenshot_2020073100%3A14%3A37](file:///Users/anakin/Desktop/%E6%88%91%E7%9A%84%E7%AC%94%E8%AE%B0/02-Data%20Types.resources/Screenshot_2020073100%3A14%3A37.png)
+![image-20200905163304975](ARM-Assembly笔记/image-20200905163304975.png)
 
 https://stackoverflow.com/questions/53065579/confusion-about-arm-documentation-on-carry-flag
 
@@ -169,11 +169,11 @@ http://www-mdp.eng.cam.ac.uk/web/library/enginfo/mdp_micro/lecture5/lecture5-4-2
 
 In the azeria-labs articles, they use full descending stack, which means the stack grows downwards, and the SP points to the topmost item in the stack
 
-![img](../../../../../06-Functions%20and%20Stack.resources/8DBB7348-EEE0-4CCE-9DE3-8F9948613532.png)
+![img](ARM-Assembly笔记/8DBB7348-EEE0-4CCE-9DE3-8F9948613532.png)
 
 https://stackoverflow.com/questions/57528457/use-of-lr-and-pc-instructions-in-non-leaf-and-leaf-functions-epilogue
 
-![img](../../../../../06-Functions%20and%20Stack.resources/4FFE45BF-397B-4CD9-8573-AB937983C7F2.png)
+![img](ARM-Assembly笔记/4FFE45BF-397B-4CD9-8573-AB937983C7F2.png)
 
 As for non-leaf function and leaf function:
 
