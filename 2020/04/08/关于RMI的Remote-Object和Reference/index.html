@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  
+  <title>关于RMI的Remote Object和Reference | _KernelPanic</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="在整理反序列化问题时对RMI相关的问题还是没有想清楚，单独开一篇记录下调试过程 需要解决的关键问题：  RMI上绑定的Remote Object和Reference有什么区别 数据如何传输 为什么在JNDI注入时客户端查询到恶意类的Reference后，会在RMI客户端执行命令，而非RMI服务端  查了很多（二手）材料，发现没人能清楚的解答我的问题 最佳参考材料：官方文档 JNDI信息来源：官方文">
+<meta property="og:type" content="article">
+<meta property="og:title" content="关于RMI的Remote Object和Reference">
+<meta property="og:url" content="https://chiahao.top/2020/04/08/%E5%85%B3%E4%BA%8ERMI%E7%9A%84Remote-Object%E5%92%8CReference/index.html">
+<meta property="og:site_name" content="_KernelPanic">
+<meta property="og:description" content="在整理反序列化问题时对RMI相关的问题还是没有想清楚，单独开一篇记录下调试过程 需要解决的关键问题：  RMI上绑定的Remote Object和Reference有什么区别 数据如何传输 为什么在JNDI注入时客户端查询到恶意类的Reference后，会在RMI客户端执行命令，而非RMI服务端  查了很多（二手）材料，发现没人能清楚的解答我的问题 最佳参考材料：官方文档 JNDI信息来源：官方文">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://chiahao.top/2020/04/08/%E5%85%B3%E4%BA%8ERMI%E7%9A%84Remote-Object%E5%92%8CReference/jndiarch.gif">
+<meta property="og:image" content="https://chiahao.top/2020/04/08/%E5%85%B3%E4%BA%8ERMI%E7%9A%84Remote-Object%E5%92%8CReference/image-20200409000100902.png">
+<meta property="og:image" content="https://chiahao.top/2020/04/08/%E5%85%B3%E4%BA%8ERMI%E7%9A%84Remote-Object%E5%92%8CReference/image-20200409000224937.png">
+<meta property="og:image" content="https://chiahao.top/2020/04/08/%E5%85%B3%E4%BA%8ERMI%E7%9A%84Remote-Object%E5%92%8CReference/image-20200408234758578.png">
+<meta property="article:published_time" content="2020-04-08T13:29:29.000Z">
+<meta property="article:modified_time" content="2020-11-29T11:28:59.957Z">
+<meta property="article:author" content="_KernelPanic">
+<meta property="article:tag" content="Java">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://chiahao.top/2020/04/08/%E5%85%B3%E4%BA%8ERMI%E7%9A%84Remote-Object%E5%92%8CReference/jndiarch.gif">
+  
+    <link rel="alternate" href="/atom.xml" title="_KernelPanic" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">_KernelPanic</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">web security &amp; android security</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="https://chiahao.top"></form>
+      </div>
+    </div>
+  </div>
+</header>
+
+      <div class="outer">
+        <section id="main"><article id="post-关于RMI的Remote-Object和Reference" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/04/08/%E5%85%B3%E4%BA%8ERMI%E7%9A%84Remote-Object%E5%92%8CReference/" class="article-date">
+  <time datetime="2020-04-08T13:29:29.000Z" itemprop="datePublished">2020-04-08</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      关于RMI的Remote Object和Reference
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>在整理反序列化问题时对RMI相关的问题还是没有想清楚，单独开一篇记录下调试过程</p>
+<p>需要解决的关键问题：</p>
+<ol>
+<li>RMI上绑定的Remote Object和Reference有什么区别</li>
+<li>数据如何传输</li>
+<li>为什么在JNDI注入时客户端查询到恶意类的Reference后，会在RMI客户端执行命令，而非RMI服务端</li>
+</ol>
+<p>查了很多（二手）材料，发现没人能清楚的解答我的问题</p>
+<p>最佳参考材料：<a href="https://docs.oracle.com/javase/jndi/tutorial/objects/storing/remote.html" target="_blank" rel="noopener">官方文档</a></p>
+<h2 id="JNDI"><a href="#JNDI" class="headerlink" title="JNDI"></a>JNDI</h2><p>信息来源：<a href="https://docs.oracle.com/javase/tutorial/jndi/overview/index.html" target="_blank" rel="noopener">官方文档</a></p>
+<p>JNDI其实是Java为需要提供<strong>命名和目录</strong>服务的程序提供的接口，是在具体的服务提供者上做的一层抽象。</p>
+<p><img src="/2020/04/08/%E5%85%B3%E4%BA%8ERMI%E7%9A%84Remote-Object%E5%92%8CReference/jndiarch.gif" alt="JNDI Architecture"></p>
+<p>Naming service 和 directory service在wiki上其实是同义词，都指一种通过名称查询具体值的服务</p>
+<p>JNDI的作用就是让上方的调用者只需要调用JNDI API，而不需要关心后端到底是由谁提供了具体的Naming and directory服务。具体的调用由JNDI SPI完成（Service Provider Interface）</p>
+<h2 id="RMI"><a href="#RMI" class="headerlink" title="RMI"></a>RMI</h2><p>从图上可以看出，RMI其实是一种具体的Service Provider，RMI是为了让一个JVM上的对象调用到另一个JVM的方法而创造的一种机制。</p>
+<p>在调用远程方法时，自然会涉及参数传递和结果传回，RMI的具体机制为：参数被序列化后传到远程JVM，之后参数被反序列化并使用，而方法执行的结果则被序列化后发送给调用方的JVM。</p>
+<p>之前已经测试过使用Reference时会造成Client命令执行，这次只调试下使用Remote Object会发生什么</p>
+<p>Reference是JNDI对RMI的扩展，因此这里的Client是调用了JNDI的接口</p>
+<p>RMI-Client测试代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Main.java</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> NamingException, RemoteException </span>&#123;</span><br><span class="line">        <span class="comment">// client</span></span><br><span class="line">        <span class="comment">// lookup for Hello Class and invoke remote method</span></span><br><span class="line">        Hashtable env = <span class="keyword">new</span> Hashtable();</span><br><span class="line">        env.put(Context.INITIAL_CONTEXT_FACTORY, <span class="string">"com.sun.jndi.rmi.registry.RegistryContextFactory"</span>);</span><br><span class="line">        env.put(Context.PROVIDER_URL, <span class="string">"rmi://127.0.0.1:1099"</span>);</span><br><span class="line">        System.getProperties().setProperty(<span class="string">"com.sun.jndi.rmi.object.trustURLCodebase"</span>, <span class="string">"true"</span>);</span><br><span class="line">        System.getProperties().setProperty(<span class="string">"com.sun.jndi.ldap.object.trustURLCodebase"</span>, <span class="string">"true"</span>);</span><br><span class="line">        String uri = <span class="string">"rmi://127.0.0.1:1099/aa"</span>;</span><br><span class="line">        Context ctx = <span class="keyword">new</span> InitialContext(env);</span><br><span class="line">        Hello obj = (Hello) ctx.lookup(uri);</span><br><span class="line">        System.out.println(obj.sayHello());</span><br><span class="line"></span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>在RMI-Client需要远程对象的接口</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Hello.java</span></span><br><span class="line"><span class="keyword">import</span> java.rmi.Remote;</span><br><span class="line"><span class="keyword">import</span> java.rmi.RemoteException;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">Hello</span> <span class="keyword">extends</span> <span class="title">Remote</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">sayHello</span><span class="params">()</span> <span class="keyword">throws</span> RemoteException</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>RMI-Server的测试代码</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Main.java</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        Registry registry = LocateRegistry.createRegistry(<span class="number">1099</span>);</span><br><span class="line">        HelloImpl h = <span class="keyword">new</span> HelloImpl();</span><br><span class="line">        registry.bind(<span class="string">"aa"</span>, h);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>RMI-Server中有Hello接口的具体实现，也就是<code>HelloImpl</code></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> java.rmi.RemoteException;</span><br><span class="line"><span class="keyword">import</span> java.rmi.server.RMISocketFactory;</span><br><span class="line"><span class="keyword">import</span> java.rmi.server.UnicastRemoteObject;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">HelloImpl</span> <span class="keyword">extends</span> <span class="title">UnicastRemoteObject</span> <span class="keyword">implements</span> <span class="title">Hello</span> </span>&#123;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * Creates and exports a new UnicastRemoteObject object using an</span></span><br><span class="line"><span class="comment">     * anonymous port.</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * &lt;p&gt;The object is exported with a server socket</span></span><br><span class="line"><span class="comment">     * created using the &#123;<span class="doctag">@link</span> RMISocketFactory&#125; class.</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@throws</span> RemoteException if failed to export object</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@since</span> JDK1.1</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">protected</span> <span class="title">HelloImpl</span><span class="params">()</span> <span class="keyword">throws</span> RemoteException </span>&#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">sayHello</span><span class="params">()</span> <span class="keyword">throws</span> RemoteException </span>&#123;</span><br><span class="line">        System.out.println(<span class="string">"hi"</span>);</span><br><span class="line">        <span class="keyword">return</span> (<span class="string">"Hello, the date is "</span> + <span class="keyword">new</span> java.util.Date());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>开启RMI-Server，之后启动RMI-Client，此时RMI-Client会来Server取Remote Object，并且调用<code>sayHello</code>方法，最直观的感受就是在RMI-Server上打印出了<code>Hi</code>字样，说明方法是在RMI-Server执行的</p>
+<p><img src="/2020/04/08/%E5%85%B3%E4%BA%8ERMI%E7%9A%84Remote-Object%E5%92%8CReference/image-20200409000100902.png" alt="image-20200409000100902"></p>
+<p>而在RMI-Client获取到了sayHello方法的返回值（序列化执行结果后返回数据给Client）</p>
+<p><img src="/2020/04/08/%E5%85%B3%E4%BA%8ERMI%E7%9A%84Remote-Object%E5%92%8CReference/image-20200409000224937.png" alt="image-20200409000224937"></p>
+<p>因此差异是：Remote Object在<code>/Library/Java/JavaVirtualMachines/jdk1.8.0_192.jdk/Contents/Home/src.zip!/javax/naming/spi/NamingManager.java</code>这里会跳过<code>getObjectFactoryFromReference</code>的方法，而Reference则会走到这个分支</p>
+<p>也就是说，Remote Object在调用时方法是在RMI Server执行的，而Reference是会根据地址取出ObjectFactory类，并且在Client实例化。这样就造成在处理Reference时RMI Client会执行命令</p>
+<p><img src="/2020/04/08/%E5%85%B3%E4%BA%8ERMI%E7%9A%84Remote-Object%E5%92%8CReference/image-20200408234758578.png" alt="image-20200408234758578"></p>
+<p>测试代码：<a href="https://github.com/miaochiahao/rmi-test-code" target="_blank" rel="noopener">https://github.com/miaochiahao/rmi-test-code</a></p>
+<p>另外，Remote Object与Client的通信具体过程其实是先由RMI-Server返回给Client一个代理（Stub），Client调用远程对象时都是通过Stub进行的，Stub封装了具体的通信细节，让调用远程方法就像调用本地方法一样</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://chiahao.top/2020/04/08/%E5%85%B3%E4%BA%8ERMI%E7%9A%84Remote-Object%E5%92%8CReference/" data-id="cki31jpz0000jcpnd8cva7ia2" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/" rel="tag">Java</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2020/04/13/Web%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E6%A0%91/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          Web安全技能树
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2020/04/05/FART%E5%85%A8%E8%87%AA%E5%8A%A8%E8%84%B1%E5%A3%B3%E6%9C%BA%E9%95%9C%E5%83%8F%E5%88%B7%E6%9C%BA%E4%BD%93%E9%AA%8C/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">FART全自动脱壳机镜像刷机体验</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+<div id="disqus_thread"></div>
+<script>
+
+/**
+*  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+*  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables*/
+/*
+var disqus_config = function () {
+this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
+this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+};
+*/
+(function() { // DON'T EDIT BELOW THIS LINE
+var d = document, s = d.createElement('script');
+s.src = 'https://chiahao-1.disqus.com/embed.js';
+s.setAttribute('data-timestamp', +new Date());
+(d.head || d.body).appendChild(s);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" target="_blank" rel="noopener">comments powered by Disqus.</a></noscript>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Android/" rel="tag">Android</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Java/" rel="tag">Java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Malware/" rel="tag">Malware</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Web/" rel="tag">Web</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Wiki/" rel="tag">Wiki</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Android/" style="font-size: 20px;">Android</a> <a href="/tags/Java/" style="font-size: 15px;">Java</a> <a href="/tags/Malware/" style="font-size: 10px;">Malware</a> <a href="/tags/Web/" style="font-size: 15px;">Web</a> <a href="/tags/Wiki/" style="font-size: 15px;">Wiki</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/09/">September 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2020/11/29/ysoserial-URLDNS/">Ysoserial-URLDNS</a>
+          </li>
+        
+          <li>
+            <a href="/2020/11/15/Shiro-550-Shiro-721%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/">Shiro-550 &amp; Shiro-721反序列化</a>
+          </li>
+        
+          <li>
+            <a href="/2020/09/05/ARM-Assembly%E7%AC%94%E8%AE%B0/">ARM Assembly学习笔记</a>
+          </li>
+        
+          <li>
+            <a href="/2020/05/21/Objection%E4%BD%BF%E7%94%A8%E7%AC%94%E8%AE%B0/">Objection使用笔记</a>
+          </li>
+        
+          <li>
+            <a href="/2020/04/13/Android%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E6%A0%91/">Android安全技能树</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2020 _KernelPanic<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+  </div>
+</body>
+</html>

@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  
+  <title>Empire源码分析 | _KernelPanic</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="一直在思考远控应该怎么设计，远控的源码究竟是什么样的。这次我会对Empire这个优秀的开源后渗透框架的源码进行分析，去挖掘这个框架背后的设计方法和原理。我想，分析完这个框架之后，我们就能够借鉴其思想，自己来实现一个远控程序来。 由于一些原因，这些分析只能在下班时间来写。对于这个框架，我打算分五篇文章写完，目录结构如下：  Empire整体结构 &amp; 程序入口 Stager &amp; Lis">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Empire源码分析">
+<meta property="og:url" content="https://chiahao.top/2020/04/04/Empire%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/index.html">
+<meta property="og:site_name" content="_KernelPanic">
+<meta property="og:description" content="一直在思考远控应该怎么设计，远控的源码究竟是什么样的。这次我会对Empire这个优秀的开源后渗透框架的源码进行分析，去挖掘这个框架背后的设计方法和原理。我想，分析完这个框架之后，我们就能够借鉴其思想，自己来实现一个远控程序来。 由于一些原因，这些分析只能在下班时间来写。对于这个框架，我打算分五篇文章写完，目录结构如下：  Empire整体结构 &amp; 程序入口 Stager &amp; Lis">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2020-04-04T04:26:57.000Z">
+<meta property="article:modified_time" content="2020-11-29T11:28:59.809Z">
+<meta property="article:author" content="_KernelPanic">
+<meta property="article:tag" content="Malware">
+<meta name="twitter:card" content="summary">
+  
+    <link rel="alternate" href="/atom.xml" title="_KernelPanic" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">_KernelPanic</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">web security &amp; android security</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="https://chiahao.top"></form>
+      </div>
+    </div>
+  </div>
+</header>
+
+      <div class="outer">
+        <section id="main"><article id="post-Empire源码分析" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/04/04/Empire%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" class="article-date">
+  <time datetime="2020-04-04T04:26:57.000Z" itemprop="datePublished">2020-04-04</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Empire源码分析
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>一直在思考远控应该怎么设计，远控的源码究竟是什么样的。这次我会对Empire这个优秀的开源后渗透框架的源码进行分析，去挖掘这个框架背后的设计方法和原理。我想，分析完这个框架之后，我们就能够借鉴其思想，自己来实现一个远控程序来。</p>
+<p>由于一些原因，这些分析只能在下班时间来写。对于这个框架，我打算分五篇文章写完，目录结构如下：</p>
+<ol>
+<li>Empire整体结构 &amp; 程序入口</li>
+<li>Stager &amp; Listener &amp; Agent</li>
+<li>数据流通 &amp; 数据加密</li>
+<li>插件 &amp; 扩展性</li>
+<li>第三方库们</li>
+</ol>
+<p>今天先开始第一篇，谈一谈Empire的目录结构和入口文件。从Github获取源码，只显示了二级目录并去除了一些安装部署相关的文件后，比较重要的几个目录结构如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line">Empire</span><br><span class="line"></span><br><span class="line">├── data                     data目录用于存放静态文件、模板、数据库等</span><br><span class="line"></span><br><span class="line">│  ├── agent</span><br><span class="line"></span><br><span class="line">│  ├── empire-chain.pem</span><br><span class="line"></span><br><span class="line">│  ├── empire-priv.key</span><br><span class="line"></span><br><span class="line">│  ├── empire.db                 Empire使用了sqlite数据库存储</span><br><span class="line"></span><br><span class="line">│  ├── misc</span><br><span class="line"></span><br><span class="line">│  ├── module_source</span><br><span class="line"></span><br><span class="line">│  ├── obfuscated_module_source</span><br><span class="line"></span><br><span class="line">│  └── profiles</span><br><span class="line"></span><br><span class="line">├── empire                    主程序入口，python文件</span><br><span class="line"></span><br><span class="line">├── lib</span><br><span class="line"></span><br><span class="line">│  ├── common</span><br><span class="line"></span><br><span class="line">│  ├── listeners                 放置了不同的listener</span><br><span class="line"></span><br><span class="line">│  ├── modules                  放置了各种payload，后渗透功能相关</span><br><span class="line"></span><br><span class="line">│  ├── powershell                放置Invoke-Obfuscation项目文件，用于混淆powershell</span><br><span class="line"></span><br><span class="line">│  └── stagers                  放置了各种平台下的stager</span><br><span class="line"></span><br><span class="line">└── plugins                    放置了插件示例文件</span><br></pre></td></tr></table></figure>
+
+<p>可以看见项目文件还是比较清晰的，由于当前远控多数情况还是被控端主动连接到控制端的，为了区分方便，在下文中我会将被控端称之为Client，将控制端称为Server。</p>
+<p>我们先来分析Server端，看一下这个项目是怎样运行的。首先关注一下Empire/empire这个文件，这是整个程序的入口。在逐渐阅读了Empire项目源码之后，我比较惊讶的是这个后渗透框架的本质其实是一个Flask Web App。</p>
+<p>程序在最开始定义了一些数据库连接和查询相关的函数，这里的数据库使用的是sqlite。为了给RESTFUL API鉴权，这里还给出了生成token的函数。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">refresh_api_token</span><span class="params">(conn)</span>:</span></span><br><span class="line"></span><br><span class="line"><span class="string">"""</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">Generates a randomized RESTful API token and updates the value</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">in the config stored in the backend database.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">"""</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># generate a randomized API token</span></span><br><span class="line"></span><br><span class="line">apiToken = <span class="string">''</span>.join(random.choice(string.ascii_lowercase + string.digits) <span class="keyword">for</span> x <span class="keyword">in</span> range(<span class="number">40</span>))</span><br><span class="line"></span><br><span class="line">execute_db_query(conn, <span class="string">"UPDATE config SET api_current_token=?"</span>, [apiToken])</span><br><span class="line"></span><br><span class="line"><span class="keyword">return</span> apiToken</span><br></pre></td></tr></table></figure>
+
+<p>岔个话题，这种写法还是蛮pythonic的，直接用了random.choice函数来随机选择，而且还使用了类似列表推导的语法</p>
+<p>之后开始的start_restful_api()函数则是使用Flask框架来注册了一堆路由，用于RESTFUL API。有人可能会好奇这玩意是做什么用的，其实在EmpireProject的github账号中已经创建了Empire GUI客户端的项目，应该是用于客户端与服务端的交互过程，或者是留了接口能够以后被第三方工具调用</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">####################################################################</span></span><br><span class="line"></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># The Empire RESTful API.</span></span><br><span class="line"></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Adapted from http://blog.miguelgrinberg.com/post/designing-a-restful-api-with-python-and-flask</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># example code at https://gist.github.com/miguelgrinberg/5614326</span></span><br><span class="line"></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Verb URI Action</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># ---- --- ------</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># GET http://localhost:1337/api/version return the current Empire version</span></span><br><span class="line"></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># GET http://localhost:1337/api/config return the current default config</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># GET http://localhost:1337/api/stagers return all current stagers</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># GET http://localhost:1337/api/stagers/X return the stager with name X</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># POST http://localhost:1337/api/stagers generate a stager given supplied options (need to implement)</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># ...</span></span><br></pre></td></tr></table></figure>
+
+<p>官方已经给了很详细的注释，可以直接去读101行开始的源码，这一部分不再详细说明</p>
+<p>从1362行来到了’<strong>main</strong>’，进入真正的逻辑，这里取了一些参数，我们只看最普通的执行情况，只有很简单的几句：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">else</span>:</span><br><span class="line"></span><br><span class="line">  \<span class="comment"># normal execution</span></span><br><span class="line"></span><br><span class="line">  main = empire.MainMenu(args=args)</span><br><span class="line"></span><br><span class="line">  main.cmdloop()</span><br></pre></td></tr></table></figure>
+
+<p>进入了empire模块中MainMenu类的cmdloop()函数，这个empire模块才是框架比较核心的部分，之前的只是入口</p>
+<p>进入Empire/lib/common/empire.py文件继续阅读</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">\<span class="comment"># custom exceptions used for nested menu navigation</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">NavMain</span><span class="params">(Exception)</span>:</span></span><br><span class="line"></span><br><span class="line"><span class="string">"""</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">Custom exception class used to navigate to the 'main' menu.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">"""</span></span><br><span class="line"></span><br><span class="line">   <span class="keyword">pass</span></span><br></pre></td></tr></table></figure>
+
+<p>一上来定义了几个类用于异常处理，其实这个是在菜单跳转中使用的。真正重要的是之后定义的几个大的类，MainMenu, SubMenu, AgentsMenu, AgentMenu, PowerShellAgentMenu, PythonAgentMenu, ListenersMenu, ListenerMenu, ModuleMenu, StagerMenu，下面一个一个讲</p>
+<p>MainMenu是最核心的控制部分，程序启动后会首先进入主菜单。Empire菜单的控制逻辑其实不全是自己写的，而是继承了cmd模块中的Cmd类，这个类的详情可以看<a href="https://wiki.python.org/moin/CmdModule" target="_blank" rel="noopener">这里</a>，简要来说的话就是提供了写命令行应用的一些很方便的特性，比如能够自定义命令和语法、整体读取命令和返回结果的循环、TAB键的语法补全，我们在MainMenu类中看到形如do_xxx的语法均为定义指令，help_xxx的语法均为定义帮助命令，complete_xxx的语法均为处理TAB补全相关</p>
+<p>在写远控框架的时候另一个比较重要的问题是，当我们发送的命令得到Client回复时，Server如何获知这个消息。Empire在这个问题上给出的答案是使用dispatcher模块。这个模块是生产者-消费者模式的一种实现，详情可以见<a href="http://pydispatcher.sourceforge.net/" target="_blank" rel="noopener">http://pydispatcher.sourceforge.net</a> </p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"># set up the event handling system</span><br><span class="line"></span><br><span class="line">dispatcher.connect(self.handle_event, sender&#x3D;dispatcher.Any)</span><br></pre></td></tr></table></figure>
+<p>77行这里指定了MainMenu的事件处理函数，这里对任何sender发出的信号都会接收并处理，我们去handle_event函数看一下</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">handle_event</span><span class="params">(self, signal, sender)</span>:</span></span><br><span class="line"></span><br><span class="line">​    <span class="string">"""</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">​    Whenver an event is received from the dispatcher, log it to the DB,</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">​    decide whether it should be printed, and if so, print it.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">​    If self.args.debug, also log all events to a file.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">​    """</span></span><br><span class="line"></span><br><span class="line">​    \<span class="comment"># load up the signal so we can inspect it</span></span><br><span class="line"></span><br><span class="line">​    <span class="keyword">try</span>:</span><br><span class="line"></span><br><span class="line">​      signal_data = json.loads(signal)</span><br><span class="line"></span><br><span class="line">​    <span class="keyword">except</span> ValueError:</span><br><span class="line"></span><br><span class="line">​      print(helpers.color(<span class="string">"[!] Error: bad signal recieved &#123;&#125; from sender &#123;&#125;"</span>.format(signal, sender)))</span><br><span class="line"></span><br><span class="line">​      <span class="keyword">return</span></span><br><span class="line"></span><br><span class="line">​    \<span class="comment"># this should probably be set in the event itself but we can check</span></span><br><span class="line"></span><br><span class="line">​    \<span class="comment"># here (and for most the time difference won't matter so it's fine)</span></span><br><span class="line"></span><br><span class="line">​    <span class="keyword">if</span> <span class="string">'timestamp'</span> <span class="keyword">not</span> <span class="keyword">in</span> signal_data:</span><br><span class="line"></span><br><span class="line">​      signal_data[<span class="string">'timestamp'</span>] = helpers.get_datetime()</span><br><span class="line"></span><br><span class="line">​    \<span class="comment"># if this is related to a task, set task_id; this is its own column in</span></span><br><span class="line"></span><br><span class="line">​    \<span class="comment"># the DB (else the column will be set to None/null)</span></span><br><span class="line"></span><br><span class="line">​    task_id = <span class="literal">None</span></span><br><span class="line"></span><br><span class="line">​    <span class="keyword">if</span> <span class="string">'task_id'</span> <span class="keyword">in</span> signal_data:</span><br><span class="line"></span><br><span class="line">​      task_id = signal_data[<span class="string">'task_id'</span>]</span><br><span class="line"></span><br><span class="line">​    <span class="keyword">if</span> <span class="string">'event_type'</span> <span class="keyword">in</span> signal_data:</span><br><span class="line"></span><br><span class="line">​      event_type = signal_data[<span class="string">'event_type'</span>]</span><br><span class="line"></span><br><span class="line">​    <span class="keyword">else</span>:</span><br><span class="line"></span><br><span class="line">​      event_type = <span class="string">'dispatched_event'</span></span><br><span class="line"></span><br><span class="line">​    event_data = json.dumps(&#123;<span class="string">'signal'</span>: signal_data, <span class="string">'sender'</span>: sender&#125;)</span><br><span class="line"></span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+<p>注释写的挺清楚，收到信号时会记录到Database，并根据signal中的选项决定是否打印数据，在不同的菜单中显示不同的数据类型的相关逻辑就是这样控制的，除此之外，dispatcher也是listener与主控程序的通信方式。之前提到过，empire本质上是一个web应用，这个web应用是被主控程序启动的，主控程序与web应用这种无状态应用之间其实是存在一种隔离的，empire使用dispatcher机制来突破了这种限制（我原以为会是通过数据库读写，其实并没有），既然提到这里，我们也看一眼listener的相关实现</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">\<span class="comment"># lib/listeners/http_com.py</span></span><br><span class="line"></span><br><span class="line"><span class="meta">@app.before_request</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">check_ip</span><span class="params">()</span>:</span></span><br><span class="line"></span><br><span class="line">   <span class="string">"""</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">   Before every request, check if the IP address is allowed.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">   """</span></span><br><span class="line"></span><br><span class="line">   <span class="keyword">if</span> <span class="keyword">not</span> self.mainMenu.agents.is_ip_allowed(request.remote_addr):</span><br><span class="line"></span><br><span class="line">​     listenerName = self.options[<span class="string">'Name'</span>][<span class="string">'Value'</span>]</span><br><span class="line"></span><br><span class="line">​     message = <span class="string">"[!] &#123;&#125; on the blacklist/not on the whitelist requested resource"</span>.format(request.remote_addr)</span><br><span class="line"></span><br><span class="line">​     signal = json.dumps(&#123;</span><br><span class="line"></span><br><span class="line">​       <span class="string">'print'</span>: <span class="literal">True</span>,</span><br><span class="line"></span><br><span class="line">​       <span class="string">'message'</span>: message</span><br><span class="line"></span><br><span class="line">​     &#125;)</span><br><span class="line"></span><br><span class="line">   dispatcher.send(signal, sender=<span class="string">"listeners/http_com/&#123;&#125;"</span>.format(listenerName))</span><br><span class="line"></span><br><span class="line">   <span class="keyword">return</span> make_response(self.default_response(), <span class="number">404</span>)</span><br></pre></td></tr></table></figure>
+
+<p>其实这里价值在于观察程序的启动方式，观察菜单跳转和命令都是怎么实现的，看完这里我们完全也可以自己做一个相似的CC出来</p>
+<p>菜单跳转这里是通过raise Exception实现的，在主菜单中永续循环读取命令，判断需要显示的菜单，如果需要跳转到agents/listeners等菜单会抛出一个异常，修改需要现实菜单的变量，主菜单捕获相应异常，根据变量值实例化一个新的菜单对象，然后再开始新的菜单对象的cmdloop()函数</p>
+<p>第一章到此结束。先简单写一下逻辑结构，至此我们已经明确了empire的菜单实现，明确了菜单之间的跳转是怎么做到的，也明确了empire交互性良好的REPL模式命令行构建的秘密，从下一章开始我会将重点放在CC真正重要的部分。</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://chiahao.top/2020/04/04/Empire%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" data-id="cki31jpyh0004cpnd7rsjar5q" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Malware/" rel="tag">Malware</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2020/04/04/fastjson%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          Fastjson反序列化
+        
+      </div>
+    </a>
+  
+  
+</nav>
+
+  
+</article>
+
+
+<div id="disqus_thread"></div>
+<script>
+
+/**
+*  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+*  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables*/
+/*
+var disqus_config = function () {
+this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
+this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+};
+*/
+(function() { // DON'T EDIT BELOW THIS LINE
+var d = document, s = d.createElement('script');
+s.src = 'https://chiahao-1.disqus.com/embed.js';
+s.setAttribute('data-timestamp', +new Date());
+(d.head || d.body).appendChild(s);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" target="_blank" rel="noopener">comments powered by Disqus.</a></noscript>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Android/" rel="tag">Android</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Java/" rel="tag">Java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Malware/" rel="tag">Malware</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Web/" rel="tag">Web</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Wiki/" rel="tag">Wiki</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Android/" style="font-size: 20px;">Android</a> <a href="/tags/Java/" style="font-size: 15px;">Java</a> <a href="/tags/Malware/" style="font-size: 10px;">Malware</a> <a href="/tags/Web/" style="font-size: 15px;">Web</a> <a href="/tags/Wiki/" style="font-size: 15px;">Wiki</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/09/">September 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2020/11/29/ysoserial-URLDNS/">Ysoserial-URLDNS</a>
+          </li>
+        
+          <li>
+            <a href="/2020/11/15/Shiro-550-Shiro-721%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/">Shiro-550 &amp; Shiro-721反序列化</a>
+          </li>
+        
+          <li>
+            <a href="/2020/09/05/ARM-Assembly%E7%AC%94%E8%AE%B0/">ARM Assembly学习笔记</a>
+          </li>
+        
+          <li>
+            <a href="/2020/05/21/Objection%E4%BD%BF%E7%94%A8%E7%AC%94%E8%AE%B0/">Objection使用笔记</a>
+          </li>
+        
+          <li>
+            <a href="/2020/04/13/Android%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E6%A0%91/">Android安全技能树</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2020 _KernelPanic<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+  </div>
+</body>
+</html>

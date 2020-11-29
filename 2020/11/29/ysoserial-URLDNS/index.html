@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  
+  <title>Ysoserial-URLDNS | _KernelPanic</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="分析下Ysoserial中的Payload，首先从最简单的URLDNS开始。相关的文件在ysoserial&#x2F;payloads&#x2F;URLDNS.java中。注释中可以找到链的调用过程 12345*   Gadget Chain:*     HashMap.readObject()*       HashMap.putVal()*         HashMap.hash()*           UR">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Ysoserial-URLDNS">
+<meta property="og:url" content="https://chiahao.top/2020/11/29/ysoserial-URLDNS/index.html">
+<meta property="og:site_name" content="_KernelPanic">
+<meta property="og:description" content="分析下Ysoserial中的Payload，首先从最简单的URLDNS开始。相关的文件在ysoserial&#x2F;payloads&#x2F;URLDNS.java中。注释中可以找到链的调用过程 12345*   Gadget Chain:*     HashMap.readObject()*       HashMap.putVal()*         HashMap.hash()*           UR">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://chiahao.top/2020/11/29/ysoserial-URLDNS/image-20201129170300783.png">
+<meta property="og:image" content="https://chiahao.top/2020/11/29/ysoserial-URLDNS/image-20201129190503940.png">
+<meta property="og:image" content="https://chiahao.top/2020/11/29/ysoserial-URLDNS/image-20201129190549169.png">
+<meta property="og:image" content="https://chiahao.top/2020/11/29/ysoserial-URLDNS/image-20201129190612692.png">
+<meta property="og:image" content="https://chiahao.top/2020/11/29/ysoserial-URLDNS/image-20201129191751731.png">
+<meta property="og:image" content="https://chiahao.top/2020/11/29/ysoserial-URLDNS/image-20201129191736940.png">
+<meta property="og:image" content="https://chiahao.top/2020/11/29/ysoserial-URLDNS/image-20201129192045929.png">
+<meta property="og:image" content="https://chiahao.top/2020/11/29/ysoserial-URLDNS/image-20201129192208556.png">
+<meta property="og:image" content="https://chiahao.top/2020/11/29/ysoserial-URLDNS/image-20201129192648255.png">
+<meta property="article:published_time" content="2020-11-29T08:56:19.000Z">
+<meta property="article:modified_time" content="2020-11-29T11:28:59.949Z">
+<meta property="article:author" content="_KernelPanic">
+<meta property="article:tag" content="Web">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://chiahao.top/2020/11/29/ysoserial-URLDNS/image-20201129170300783.png">
+  
+    <link rel="alternate" href="/atom.xml" title="_KernelPanic" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">_KernelPanic</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">web security &amp; android security</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="https://chiahao.top"></form>
+      </div>
+    </div>
+  </div>
+</header>
+
+      <div class="outer">
+        <section id="main"><article id="post-ysoserial-URLDNS" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/11/29/ysoserial-URLDNS/" class="article-date">
+  <time datetime="2020-11-29T08:56:19.000Z" itemprop="datePublished">2020-11-29</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Ysoserial-URLDNS
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>分析下Ysoserial中的Payload，首先从最简单的URLDNS开始。相关的文件在<code>ysoserial/payloads/URLDNS.java</code>中。注释中可以找到链的调用过程</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">*   Gadget Chain:</span><br><span class="line">*     HashMap.readObject()</span><br><span class="line">*       HashMap.putVal()</span><br><span class="line">*         HashMap.hash()</span><br><span class="line">*           URL.hashCode()</span><br></pre></td></tr></table></figure>
+
+<p>主要分析该工具<code>getObject</code>函数返回的对象在返回之前到底做了哪些事情</p>
+<p><img src="/2020/11/29/ysoserial-URLDNS/image-20201129170300783.png" alt="image-20201129170300783"></p>
+<p>这里返回的类是HashMap，因此在反序列化时一定会调用HashMap的<code>readObject</code>函数</p>
+<p><img src="/2020/11/29/ysoserial-URLDNS/image-20201129190503940.png" alt="image-20201129190503940"></p>
+<p>使用ysoserial生成payload，手工反序列化触发并调试</p>
+<p><img src="/2020/11/29/ysoserial-URLDNS/image-20201129190549169.png" alt="image-20201129190549169"></p>
+<p>跟进putVal</p>
+<p><img src="/2020/11/29/ysoserial-URLDNS/image-20201129190612692.png" alt="image-20201129190612692"></p>
+<p>跟进hash(key)</p>
+<p><img src="/2020/11/29/ysoserial-URLDNS/image-20201129191751731.png" alt="image-20201129191751731"></p>
+<p>进入key.hashCode()</p>
+<p><img src="/2020/11/29/ysoserial-URLDNS/image-20201129191736940.png" alt="image-20201129191736940"></p>
+<p>这里有个技巧是，在生成序列化数据的时候，ysoserial设置了hashCode的值为-1，这样能够保证URL的Hash不被缓存，从而每次都被触发，继续跟进到getHostAddress中</p>
+<p><img src="/2020/11/29/ysoserial-URLDNS/image-20201129192045929.png" alt="image-20201129192045929"></p>
+<p>在这里会触发DNS请求</p>
+<p><img src="/2020/11/29/ysoserial-URLDNS/image-20201129192208556.png" alt="image-20201129192208556"></p>
+<p>在DNSLOG中可以看到相应的记录</p>
+<p><img src="/2020/11/29/ysoserial-URLDNS/image-20201129192648255.png" alt="image-20201129192648255"></p>
+<p>这条链总体很清楚，而且只借助JDK自身的类就能够完成，可以用来探测反序列化行为是否存在</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://chiahao.top/2020/11/29/ysoserial-URLDNS/" data-id="cki31jpyx000gcpndexgq32rt" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Web/" rel="tag">Web</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2020/11/15/Shiro-550-Shiro-721%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Shiro-550 &amp; Shiro-721反序列化</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+<div id="disqus_thread"></div>
+<script>
+
+/**
+*  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+*  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables*/
+/*
+var disqus_config = function () {
+this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
+this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+};
+*/
+(function() { // DON'T EDIT BELOW THIS LINE
+var d = document, s = d.createElement('script');
+s.src = 'https://chiahao-1.disqus.com/embed.js';
+s.setAttribute('data-timestamp', +new Date());
+(d.head || d.body).appendChild(s);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" target="_blank" rel="noopener">comments powered by Disqus.</a></noscript>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Android/" rel="tag">Android</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Java/" rel="tag">Java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Malware/" rel="tag">Malware</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Web/" rel="tag">Web</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Wiki/" rel="tag">Wiki</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Android/" style="font-size: 20px;">Android</a> <a href="/tags/Java/" style="font-size: 15px;">Java</a> <a href="/tags/Malware/" style="font-size: 10px;">Malware</a> <a href="/tags/Web/" style="font-size: 15px;">Web</a> <a href="/tags/Wiki/" style="font-size: 15px;">Wiki</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/09/">September 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2020/11/29/ysoserial-URLDNS/">Ysoserial-URLDNS</a>
+          </li>
+        
+          <li>
+            <a href="/2020/11/15/Shiro-550-Shiro-721%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/">Shiro-550 &amp; Shiro-721反序列化</a>
+          </li>
+        
+          <li>
+            <a href="/2020/09/05/ARM-Assembly%E7%AC%94%E8%AE%B0/">ARM Assembly学习笔记</a>
+          </li>
+        
+          <li>
+            <a href="/2020/05/21/Objection%E4%BD%BF%E7%94%A8%E7%AC%94%E8%AE%B0/">Objection使用笔记</a>
+          </li>
+        
+          <li>
+            <a href="/2020/04/13/Android%E5%AE%89%E5%85%A8%E6%8A%80%E8%83%BD%E6%A0%91/">Android安全技能树</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2020 _KernelPanic<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+  </div>
+</body>
+</html>
